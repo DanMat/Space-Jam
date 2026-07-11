@@ -47,6 +47,20 @@
 		L: { name: 'Extra life', color: '#ff2e97' }
 	};
 
+	// Background chiptunes — one per level, cycling so runs feel varied; a tense
+	// 'boss' loop takes over when the boss arrives (Retroix.tracks).
+	var LEVEL_TRACKS = [
+		{ tempo: 140, voices: [
+			{ wave: 'square', vol: 0.24, notes: 'E5 B4 E5 G5 B5 G5 E5 B4 D5 A4 D5 F#5 A5 - E5 -' },
+			{ wave: 'triangle', vol: 0.5, notes: 'E3 . E3 . C3 . . . D3 . D3 . B2 . . .' } ] },
+		{ tempo: 132, voices: [
+			{ wave: 'square', vol: 0.24, notes: 'G4 C5 E5 G5 C6 G5 E5 C5 F5 A5 F5 D5 G5 - C5 -' },
+			{ wave: 'triangle', vol: 0.5, notes: 'C3 . . . A2 . . . F2 . . . G2 . . .' } ] },
+		{ tempo: 146, voices: [
+			{ wave: 'square', vol: 0.24, notes: 'A4 E5 A5 C6 A5 E5 A4 C5 G5 D5 G5 B5 E5 - A4 -' },
+			{ wave: 'triangle', vol: 0.5, notes: 'A2 . A2 . F2 . . . G2 . G2 . E2 . . .' } ] }
+	];
+
 	/* ------------------------------ helpers ------------------------------- */
 
 	function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -98,6 +112,7 @@
 		enemies = []; ebul = []; pbul = []; missiles = []; powerups = []; parts = [];
 		boss = null; bossPending = false; killed = 0; quota = lvl.quota; spawnTimer = 1; combo = 0;
 		if (!player) { newPlayer(); } else { player.x = 120; player.y = H / 2; player.shield = 2; player.iframe = 1; }
+		sfx.music(LEVEL_TRACKS[idx % LEVEL_TRACKS.length], { fade: 0.6 });
 		showIntro();
 	}
 	function startGame() { newGame(); }
@@ -129,6 +144,7 @@
 
 	function endGame(won) {
 		state = 'ending';
+		sfx.stopMusic(0.4);
 		if (won) { score += lives * 500; sfx.jingle('win'); }
 		else { sfx.jingle('gameover'); }
 		board.qualifies(score).then(function (ok) { ok ? showInitials() : showGameover(won); });
@@ -290,7 +306,7 @@
 	/* ------------------------------- boss --------------------------------- */
 
 	function spawnBoss() {
-		bossPending = true; toast('⚠ ' + lvl.boss.name);
+		bossPending = true; toast('⚠ ' + lvl.boss.name); sfx.music('boss');
 		setTimeout(function () {
 			if (state === 'playing' || state === 'intro') {
 				boss = { x: W + 120, y: H / 2, tx: W - 150, w: 120, h: 130, hp: lvl.boss.hp, maxHp: lvl.boss.hp,
@@ -537,8 +553,8 @@
 	/* ------------------------------ screens ------------------------------- */
 
 	function showScreen(id) { if (id) { screens.show(id); } else { screens.hideAll(); } }
-	function showTitle() { state = 'title'; showScreen('screenTitle'); refreshTitleTop(); }
-	function togglePause() { if (state === 'playing') { state = 'paused'; showScreen('screenPause'); } else if (state === 'paused') { showScreen(null); state = 'playing'; } }
+	function showTitle() { state = 'title'; showScreen('screenTitle'); refreshTitleTop(); sfx.music('title'); }
+	function togglePause() { if (state === 'playing') { state = 'paused'; showScreen('screenPause'); sfx.pauseMusic(); } else if (state === 'paused') { showScreen(null); state = 'playing'; sfx.resumeMusic(); } }
 
 	/* ------------------------------- input -------------------------------- */
 
