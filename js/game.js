@@ -308,7 +308,7 @@
 	function spawnBoss() {
 		bossPending = true; toast('⚠ ' + lvl.boss.name); sfx.music('boss');
 		setTimeout(function () {
-			if (state === 'playing' || state === 'intro') {
+			if (state === 'playing') {
 				boss = { x: W + 120, y: H / 2, tx: W - 150, w: 120, h: 130, hp: lvl.boss.hp, maxHp: lvl.boss.hp,
 					color: lvl.boss.color, name: lvl.boss.name, t: 0, fireTimer: 1.5, moveDir: 1, flash: 0, entering: true };
 			}
@@ -338,6 +338,10 @@
 	function killBoss() {
 		burst(boss.x, boss.y, boss.color, 40); fx.shake(1); fx.flash('#ffffff', 0.35); sfx.explosion();
 		score += 2000 * (levelIndex + 1); toast(boss.name + ' DESTROYED'); boss = null;
+		// Hold bossPending through the transition: killed is still >= quota until
+		// startLevel resets it, so without this updateSpawning would re-fire
+		// spawnBoss and the next level would open mid boss-fight.
+		bossPending = true;
 		setTimeout(function () { if (state === 'playing') { levelCleared(); } }, 700);
 	}
 
