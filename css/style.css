@@ -49,6 +49,14 @@ body {
 }
 #game { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
 
+/* Attract mode (?demo=1): clean, full-bleed gameplay for the gallery backdrop */
+body.demo { padding: 0; cursor: none; background: #04040c; overflow: hidden; }
+body.demo .frame { width: 100vw; max-width: none; height: 100vh; gap: 0; }
+body.demo .hud { display: none; }
+body.demo .playfield { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 0; box-shadow: none; }
+body.demo #game { object-fit: cover; }   /* keep 16:9, fill the backdrop, crop overflow */
+body.demo .screen, body.demo .toast { display: none !important; }
+
 .toast {
 	position: absolute; top: 10%; left: 50%; transform: translateX(-50%) scale(.7);
 	font-family: var(--pixel); font-size: clamp(11px, 2.8vw, 18px); color: #fff;
