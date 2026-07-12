@@ -24,6 +24,7 @@
 	var player = null, enemies = [], pbul = [], ebul = [], missiles = [], powerups = [], parts = [], stars = [];
 	var boss = null, levelIndex = 0, lvl = null;
 	var testMode = false, testDeaths = 0;   // autopilot: infinite lives + death-by-level bucketing
+	var demoMode = /[?&]demo=1/.test(location.search);   // attract-mode backdrop for the gallery
 	var score = 0, lives = 3, bombs = 3, combo = 0, killed = 0, quota = 0;
 	var spawnTimer = 0, bossPending = false, scrollX = 0, elapsed = 0, introTimer = 0;
 	var input = { up: false, down: false, left: false, right: false, mouse: null };
@@ -90,6 +91,7 @@
 		showTitle();
 		Retroix.loop(step).start();
 		setupAutopilot();
+		if (demoMode) { startDemo(); }
 	}
 
 	// Dev mode: Konami code -> a bot that flies the ship (auto-fire does the
@@ -99,22 +101,37 @@
 		Retroix.autopilot({
 			start: function () { testMode = true; testDeaths = 0; if (state === 'title') { startGame(); } },
 			stop: function () { testMode = false; },
-			bot: function () {
-				if (state !== 'playing' || !player) { return; }
-				var ty = player.y;
-				if (boss && !boss.entering) { ty = boss.y; }
-				else if (enemies.length) { var ne = enemies[0]; for (var i = 1; i < enemies.length; i++) { if (enemies[i].x < ne.x) { ne = enemies[i]; } } ty = ne.y; }
-				var dodge = 0;
-				for (var j = 0; j < ebul.length; j++) { var eb = ebul[j]; if (eb.x > player.x - 30 && eb.x < player.x + 130 && Math.abs(eb.y - player.y) < 60) { dodge += (player.y - eb.y >= 0 ? 55 : -55); } }
-				ty = clamp(ty + dodge, 30, H - 30);
-				input.mouse = { x: W * 0.26, y: ty };
-			},
+			bot: flyBot,
 			progress: function () { return levelIndex * 100000 + score; },
 			location: function () { return levelIndex; },
 			deaths: function () { return testDeaths; },
 			isWin: function () { return !!wonFlag; },
 			deathsPerSpot: 8, stuck: 25, timeout: 220
 		});
+	}
+
+	// The flying bot: steer the ship (auto-fire handles shooting) to line up with
+	// the frontmost enemy / boss while nudging clear of incoming fire. Shared by
+	// the Konami autopilot and the ?demo=1 attract loop.
+	function flyBot() {
+		if (state !== 'playing' || !player) { return; }
+		var ty = player.y;
+		if (boss && !boss.entering) { ty = boss.y; }
+		else if (enemies.length) { var ne = enemies[0]; for (var i = 1; i < enemies.length; i++) { if (enemies[i].x < ne.x) { ne = enemies[i]; } } ty = ne.y; }
+		var dodge = 0;
+		for (var j = 0; j < ebul.length; j++) { var eb = ebul[j]; if (eb.x > player.x - 30 && eb.x < player.x + 130 && Math.abs(eb.y - player.y) < 60) { dodge += (player.y - eb.y >= 0 ? 55 : -55); } }
+		ty = clamp(ty + dodge, 30, H - 30);
+		input.mouse = { x: W * 0.26, y: ty };
+	}
+
+	// Attract mode: with ?demo=1 the game boots straight into a muted, chrome-free
+	// bot run for use as the Retroix gallery backdrop. Infinite lives (testMode);
+	// endGame() loops it back to level 1 so it plays forever.
+	function startDemo() {
+		document.body.classList.add('demo');
+		try { sfx.mute(true); } catch (e) {}
+		testMode = true; testDeaths = 0;
+		startGame();
 	}
 
 	function makeStars() {
@@ -172,6 +189,7 @@
 	}
 
 	function endGame(won) {
+		if (demoMode) { startGame(); return; }   // attract loop: replay forever
 		state = 'ending';
 		sfx.stopMusic(0.4);
 		if (won) { score += lives * 500; sfx.jingle('win'); }
@@ -190,6 +208,7 @@
 
 	function step(dt) {
 		fx.update(dt);
+		if (demoMode && state === 'playing') { flyBot(); }
 		if (state === 'playing') { update(dt); }
 		else if (state === 'intro') { introTimer -= dt; scrollStars(dt); if (introTimer <= 0) { beginPlay(); } }
 		else { scrollStars(dt * 0.4); }
