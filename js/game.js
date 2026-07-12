@@ -23,6 +23,7 @@
 	var state = 'title';
 	var player = null, enemies = [], pbul = [], ebul = [], missiles = [], powerups = [], parts = [], stars = [];
 	var boss = null, levelIndex = 0, lvl = null;
+	var testMode = false, testDeaths = 0;   // autopilot: infinite lives + death-by-level bucketing
 	var score = 0, lives = 3, bombs = 3, combo = 0, killed = 0, quota = 0;
 	var spawnTimer = 0, bossPending = false, scrollX = 0, elapsed = 0, introTimer = 0;
 	var input = { up: false, down: false, left: false, right: false, mouse: null };
@@ -88,6 +89,32 @@
 		bindButtons();
 		showTitle();
 		Retroix.loop(step).start();
+		setupAutopilot();
+	}
+
+	// Dev mode: Konami code -> a bot that flies the ship (auto-fire does the
+	// shooting) to align with enemies/boss and dodge incoming fire, to check all
+	// levels + bosses are beatable. Infinite lives; deaths bucketed by level.
+	function setupAutopilot() {
+		Retroix.autopilot({
+			start: function () { testMode = true; testDeaths = 0; if (state === 'title') { startGame(); } },
+			stop: function () { testMode = false; },
+			bot: function () {
+				if (state !== 'playing' || !player) { return; }
+				var ty = player.y;
+				if (boss && !boss.entering) { ty = boss.y; }
+				else if (enemies.length) { var ne = enemies[0]; for (var i = 1; i < enemies.length; i++) { if (enemies[i].x < ne.x) { ne = enemies[i]; } } ty = ne.y; }
+				var dodge = 0;
+				for (var j = 0; j < ebul.length; j++) { var eb = ebul[j]; if (eb.x > player.x - 30 && eb.x < player.x + 130 && Math.abs(eb.y - player.y) < 60) { dodge += (player.y - eb.y >= 0 ? 55 : -55); } }
+				ty = clamp(ty + dodge, 30, H - 30);
+				input.mouse = { x: W * 0.26, y: ty };
+			},
+			progress: function () { return levelIndex * 100000 + score; },
+			location: function () { return levelIndex; },
+			deaths: function () { return testDeaths; },
+			isWin: function () { return !!wonFlag; },
+			deathsPerSpot: 8, stuck: 25, timeout: 220
+		});
 	}
 
 	function makeStars() {
@@ -131,7 +158,9 @@
 		lives--; combo = 0; updateHud(); fx.shake(0.75); fx.flash('#ff283c', 0.32); sfx.explosion();
 		if (player.power > 1) { player.power--; }
 		player.homing = false;
-		if (lives <= 0) { return endGame(false); }
+		if (lives <= 0) {
+			if (testMode) { testDeaths++; lives = 3; } else { return endGame(false); }
+		}
 		player.x = 120; player.y = H / 2; player.shield = 2.5; player.iframe = 2; ebul = [];
 	}
 
