@@ -42,11 +42,14 @@ assets).
 
 ## High scores
 
-The leaderboard uses your browser's **localStorage** out of the box and shares
-an online board across all of these games via a free **Supabase** project. See
-[`docs/supabase.sql`](docs/supabase.sql) for the schema and
-[`js/config.js`](js/config.js) for where the project URL + public key go — the
-board is namespaced by `gameId`, so Space-Jam's scores are separate.
+High scores go to a **shared Cloudflare leaderboard** — a Worker + D1
+([retroix-leaderboard](https://github.com/DanMat/retroix-leaderboard)) shared by all of
+Dan's Retroix games and namespaced by `gameId`, so this game's board is its own. It
+works out of the box (no account, no setup) and validates + caps scores server-side.
+Blank `apiUrl` in [`js/config.js`](js/config.js) to fall back to a local
+(per-browser) board.
+
+> Any client-side leaderboard can be spoofed by a determined player — it's for fun, not competition.
 
 ## Play locally
 
@@ -64,8 +67,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | --- | --- |
 | `js/game.js` | Canvas engine: player, enemy AI/patterns, bullets, missiles, bosses, power-ups, HUD, state machine. |
 | `js/levels.js` | Pure-data level definitions (theme, enemy mix, boss). |
-| `js/leaderboard.js` | Reusable high-score store (Supabase REST + localStorage fallback). |
-| `js/config.js` | Supabase URL/key and game id. |
+| `js/config.js` | Leaderboard API URL and game id. |
 
 ## Credits
 
